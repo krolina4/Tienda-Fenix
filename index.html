@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Tienda · Cuaderno digital</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3F6B52">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tienda">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F4EE;
+    --paper:#FFFDF9;
+    --ink:#2A2721;
+    --ink-soft:#7A7266;
+    --line:#E3DACB;
+    --sage:#3F6B52;
+    --sage-soft:#E7EFE9;
+    --brick:#A6483C;
+    --brick-soft:#F5E7E4;
+    --gold:#B98A3E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
+
+  /* ---- Header ---- */
+  header{padding:22px 18px 14px;border-bottom:1px solid var(--line);}
+  header h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    font-size:22px;
+    margin:0 0 2px;
+    letter-spacing:-0.01em;
+  }
+  #loadState{
+    min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:40px 24px;text-align:center;gap:14px;
+  }
+  #loadState p{font-size:14.5px;color:var(--ink-soft);line-height:1.6;max-width:280px;}
+  #retryLoadBtn{
+    background:var(--ink);color:var(--paper);border:none;border-radius:10px;
+    padding:11px 20px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+  }
+  #pinGate{
+    display:none;position:fixed;inset:0;background:var(--bg);z-index:200;
+    flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center;
+  }
+  #pinGate .lock{font-size:34px;}
+  #pinGate p{font-size:14.5px;color:var(--ink-soft);}
+  #pinInput{
+    width:180px;text-align:center;letter-spacing:6px;font-size:22px;padding:12px;
+    border-radius:10px;border:1px solid var(--line);font-family:inherit;background:#fff;color:var(--ink);
+  }
+  #pinInput:focus{outline:2px solid var(--sage);outline-offset:1px;}
+  #pinSubmitBtn{
+    background:var(--sage);color:#fff;border:none;border-radius:10px;padding:12px 28px;
+    font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;
+  }
+  #pinError{color:var(--brick);font-size:13px;display:none;}
+  header .sub{font-size:13px;color:var(--ink-soft);}
+  .sub-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px;}
+  .sync-pill{font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--ink-soft);}
+
+  /* ---- Search / list controls ---- */
+  .controls{display:flex;gap:8px;padding:14px 18px;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap input{
+    width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--paper);font-size:15px;font-family:inherit;color:var(--ink);
+  }
+  .search-wrap input:focus{outline:2px solid var(--sage);outline-offset:1px;}
+  .btn-new{
+    background:var(--ink);color:var(--paper);border:none;border-radius:10px;
+    padding:0 16px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+    white-space:nowrap;
+  }
+
+  /* ---- Resident list ---- */
+  .list{flex:1;overflow-y:auto;padding:0 18px 90px;}
+  .row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .row:active{background:var(--paper);}
+  .row .name{font-size:16px;font-weight:500;}
+  .row .num{font-size:12.5px;color:var(--ink-soft);font-weight:500;margin-right:6px;}
+  .row .balance{font-family:'Source Serif 4',serif;font-size:17px;font-weight:600;color:var(--sage);}
+  .row .balance.zero{color:var(--gold);}
+  .row .balance.neg{color:var(--brick);}
+  .empty-state{padding:60px 20px;text-align:center;color:var(--ink-soft);font-size:14px;line-height:1.6;}
+
+  .products-link-row{padding:0 18px 8px;display:flex;gap:8px;}
+  .archive-toggle-row{padding:6px 18px 90px;}
+  .btn-products-link{
+    background:none;border:1px solid var(--line);color:var(--ink-soft);
+    border-radius:10px;padding:8px 12px;font-size:13px;font-family:inherit;
+    font-weight:500;cursor:pointer;width:100%;text-align:left;flex:1;
+  }
+  .archived-tag{
+    display:inline-block;font-size:11px;color:var(--gold);border:1px solid var(--gold);
+    border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle;
+  }
+  .detail-menu-row{display:flex;justify-content:space-between;gap:16px;padding:0 18px;}
+  .detail-menu-row button{
+    background:none;border:none;font-size:13px;font-family:inherit;cursor:pointer;
+    color:var(--ink-soft);padding:6px 0;font-weight:500;
+  }
+  .detail-menu-row button.danger{color:var(--brick);}
+
+  /* ---- Product rows (management) ---- */
+  .product-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 4px;border-bottom:1px solid var(--line);
+  }
+  .product-row .p-name{font-size:15px;font-weight:500;}
+  .product-row .p-price{font-size:13.5px;color:var(--ink-soft);margin-top:1px;}
+  .product-row .p-actions{display:flex;gap:14px;}
+  .product-row .p-actions button{
+    background:none;border:none;font-size:13px;font-family:inherit;cursor:pointer;
+    color:var(--ink-soft);padding:4px;
+  }
+  .product-row .p-actions button.del{color:var(--brick);}
+  .add-product-form{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  .add-product-form input{flex:1;}
+  .add-product-form input.price{max-width:90px;}
+  .add-product-form button{
+    background:var(--ink);color:var(--paper);border:none;border-radius:10px;
+    padding:0 14px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+  }
+  .products-scroll{max-height:50vh;overflow-y:auto;}
+
+  /* ---- Cart (purchase sheet) ---- */
+  .cart-list{max-height:38vh;overflow-y:auto;margin-bottom:6px;}
+  .cart-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 2px;border-bottom:1px solid var(--line);
+  }
+  .cart-row .c-info{flex:1;}
+  .cart-row .c-name{font-size:14.5px;font-weight:500;}
+  .cart-row .c-price{font-size:12px;color:var(--ink-soft);}
+  .qty-stepper{display:flex;align-items:center;gap:10px;}
+  .qty-stepper button{
+    width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    font-size:16px;font-family:inherit;cursor:pointer;color:var(--ink);line-height:1;
+  }
+  .qty-stepper button.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .qty-stepper .qty-num{min-width:18px;text-align:center;font-size:14.5px;font-weight:600;}
+  .cart-total-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 2px 4px;font-family:'Source Serif 4',serif;font-size:18px;font-weight:700;
+  }
+  .no-products{padding:20px 4px;color:var(--ink-soft);font-size:13.5px;text-align:center;}
+
+  .toast{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-14px);
+    background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:10px;
+    font-size:13.5px;font-weight:500;opacity:0;pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;z-index:100;max-width:88%;
+    text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.18);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---- Daily summary ---- */
+  .summary-stats{display:flex;gap:10px;margin-bottom:8px;}
+  .stat-box{flex:1;background:var(--bg);border-radius:12px;padding:12px 10px;text-align:center;}
+  .stat-box .stat-num{font-family:'Source Serif 4',serif;font-size:19px;font-weight:700;}
+  .stat-box .stat-label{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .summary-list{max-height:42vh;overflow-y:auto;margin-top:10px;border-top:1px solid var(--line);}
+  .summary-item{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:11px 2px;border-bottom:1px solid var(--line);
+  }
+  .summary-item .s-note{font-size:14px;font-weight:500;}
+  .summary-item .s-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+
+  /* ---- Detail view ---- */
+  #detail{display:none;flex-direction:column;min-height:100vh;}
+  .detail-header{padding:16px 18px 0;}
+  .back-btn{
+    background:none;border:none;color:var(--ink-soft);font-size:14px;font-family:inherit;
+    padding:8px 0;cursor:pointer;font-weight:500;
+  }
+  .balance-block{padding:10px 18px 22px;text-align:center;border-bottom:1px solid var(--line);}
+  .balance-block .amount{font-family:'Source Serif 4',serif;font-size:40px;font-weight:700;}
+  .balance-block .label{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .balance-block .name{font-size:15px;color:var(--ink-soft);margin-bottom:6px;}
+  .balance-block .name .detail-num{color:var(--ink);font-weight:600;}
+
+  .action-row{display:flex;gap:10px;padding:16px 18px;}
+  .action-btn{
+    flex:1;border:none;border-radius:12px;padding:13px 0;font-size:15px;font-weight:600;
+    font-family:inherit;cursor:pointer;
+  }
+  .action-btn.deposit{background:var(--sage-soft);color:var(--sage);}
+  .action-btn.purchase{background:var(--brick-soft);color:var(--brick);}
+
+  .tx-list{flex:1;overflow-y:auto;padding:4px 18px 40px;}
+  .tx-item{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .tx-left .tx-note{font-size:14.5px;font-weight:500;}
+  .tx-left .tx-date{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .tx-amount{font-family:'Source Serif 4',serif;font-size:15px;font-weight:600;white-space:nowrap;}
+  .tx-amount.pos{color:var(--sage);}
+  .tx-amount.neg{color:var(--brick);}
+
+  /* ---- Sheet / modal ---- */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(42,39,33,0.4);z-index:10;
+    align-items:flex-end;justify-content:center;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;
+    padding:20px 20px 28px;animation:up .18s ease-out;
+  }
+  @keyframes up{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .sheet h2{font-family:'Source Serif 4',serif;font-size:19px;margin:0 0 16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:500;}
+  .field input{
+    width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--line);
+    font-size:16px;font-family:inherit;color:var(--ink);background:#fff;
+  }
+  .field input:focus{outline:2px solid var(--sage);outline-offset:1px;}
+  .sheet-actions{display:flex;gap:10px;margin-top:18px;}
+  .sheet-actions button{
+    flex:1;border:none;border-radius:10px;padding:13px 0;font-size:15px;font-weight:600;
+    font-family:inherit;cursor:pointer;
+  }
+  .btn-cancel{background:var(--bg);color:var(--ink-soft);}
+  .btn-save{background:var(--ink);color:var(--paper);}
+  .btn-save.deposit{background:var(--sage);}
+  .btn-save.purchase{background:var(--brick);}
+  .btn-delete{background:none;border:none;color:var(--brick);font-size:13px;font-family:inherit;
+    cursor:pointer;padding:6px 0;margin-top:4px;}
+  .warn{font-size:12.5px;color:var(--gold);margin-top:-6px;margin-bottom:12px;}
+  .hint{font-size:12px;color:var(--ink-soft);text-align:center;padding:10px 0 0;}
+</style>
+</head>
+<body>
+
+<div id="pinGate">
+  <div class="lock">🔒</div>
+  <h1 style="font-family:'Source Serif 4',serif;font-size:19px;margin:0;">Tienda · Cuaderno digital</h1>
+  <p>Ingresa el PIN del local para entrar</p>
+  <input id="pinInput" type="tel" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+  <p id="pinError">PIN incorrecto, intenta de nuevo.</p>
+  <button id="pinSubmitBtn">Entrar</button>
+</div>
+
+<div id="app">
+
+  <!-- LOAD STATE (blocks the app until data loads successfully at least once) -->
+  <div id="loadState">
+    <p id="loadStateText">Cargando datos...</p>
+    <button id="retryLoadBtn" style="display:none;">Reintentar</button>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="listView" style="display:none;">
+    <header>
+      <h1>Tienda · Cuaderno digital</h1>
+      <div class="sub-row">
+        <div class="sub" id="residentCount">Cargando...</div>
+        <div class="sync-pill" id="syncPill"></div>
+      </div>
+    </header>
+    <div class="controls">
+      <div class="search-wrap">
+        <input id="searchInput" type="text" placeholder="Buscar residente..." autocomplete="off">
+      </div>
+      <button class="btn-new" id="newResidentBtn">+ Nuevo</button>
+    </div>
+    <div class="products-link-row">
+      <button class="btn-products-link" id="openProductsBtn">🏷️ Productos</button>
+      <button class="btn-products-link" id="openSummaryBtn">📊 Resumen del día</button>
+    </div>
+    <div class="products-link-row">
+      <button class="btn-products-link" id="openHistoryBtn">🔍 Historial completo</button>
+      <button class="btn-products-link" id="exportBtn">⬇️ Exportar</button>
+    </div>
+    <div class="list" id="residentList"></div>
+    <div class="archive-toggle-row">
+      <button class="btn-products-link" id="toggleArchivedBtn">Ver archivados</button>
+    </div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detail">
+    <div class="detail-header">
+      <button class="back-btn" id="backBtn">← Volver</button>
+    </div>
+    <div class="detail-menu-row">
+      <button id="editNameBtn">✏️ Editar nombre</button>
+      <div style="display:flex;gap:16px;">
+        <button id="archiveBtn"></button>
+        <button id="deleteResidentBtn" class="danger" style="display:none;">Eliminar definitivamente</button>
+      </div>
+    </div>
+    <div class="balance-block">
+      <div class="name" id="detailName"></div>
+      <div class="amount" id="detailBalance"></div>
+      <div class="label">saldo disponible</div>
+    </div>
+    <div class="action-row">
+      <button class="action-btn deposit" id="depositBtn">+ Depósito</button>
+      <button class="action-btn purchase" id="purchaseBtn">− Compra</button>
+    </div>
+    <div class="tx-list" id="txList"></div>
+  </div>
+
+</div>
+
+<!-- NEW RESIDENT SHEET -->
+<div class="overlay" id="newResidentOverlay">
+  <div class="sheet">
+    <h2>Nuevo residente</h2>
+    <div class="field">
+      <label>Nombre</label>
+      <input id="newResidentName" type="text" placeholder="Nombre completo">
+    </div>
+    <div class="field">
+      <label>Saldo inicial (opcional)</label>
+      <input id="newResidentBalance" type="number" inputmode="decimal" placeholder="0">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="newResidentOverlay">Cancelar</button>
+      <button class="btn-save" id="saveNewResident">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- EDIT RESIDENT NAME SHEET -->
+<div class="overlay" id="editNameOverlay">
+  <div class="sheet">
+    <h2>Editar nombre</h2>
+    <div class="field">
+      <label>Nombre</label>
+      <input id="editNameInput" type="text">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="editNameOverlay">Cancelar</button>
+      <button class="btn-save" id="saveEditName">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM SHEET (reusable) -->
+<div class="overlay" id="confirmOverlay">
+  <div class="sheet">
+    <h2 id="confirmMessage" style="font-family:'Inter',sans-serif;font-weight:600;font-size:16px;line-height:1.5;"></h2>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="confirmCancelBtn">Cancelar</button>
+      <button class="btn-save purchase" id="confirmOkBtn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FULL HISTORY SHEET -->
+<div class="overlay" id="historyOverlay">
+  <div class="sheet">
+    <h2>Historial completo</h2>
+    <div class="field">
+      <label>Buscar residente (nombre o número)</label>
+      <input id="historySearch" type="text" placeholder="Ej: Ana, o 12">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div class="field" style="flex:1;">
+        <label>Desde</label>
+        <input id="historyFrom" type="date">
+      </div>
+      <div class="field" style="flex:1;">
+        <label>Hasta</label>
+        <input id="historyTo" type="date">
+      </div>
+    </div>
+    <div class="summary-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="histStatDeposits" style="color:var(--sage);">$0</div>
+        <div class="stat-label">Depositado</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="histStatPurchases" style="color:var(--brick);">$0</div>
+        <div class="stat-label">En compras</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="histStatCount">0</div>
+        <div class="stat-label">Movimientos</div>
+      </div>
+    </div>
+    <div class="summary-list" id="historyList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="historyOverlay" style="flex:none;width:100%;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DAILY SUMMARY SHEET -->
+<div class="overlay" id="summaryOverlay">
+  <div class="sheet">
+    <h2 id="summaryTitle">Resumen de hoy</h2>
+    <div class="summary-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="statDeposits" style="color:var(--sage);">$0</div>
+        <div class="stat-label">Depositado</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statPurchases" style="color:var(--brick);">$0</div>
+        <div class="stat-label">En compras</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statCount">0</div>
+        <div class="stat-label">Movimientos</div>
+      </div>
+    </div>
+    <div class="summary-list" id="summaryList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="summaryOverlay" style="flex:none;width:100%;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTS CATALOG SHEET -->
+<div class="overlay" id="productsOverlay">
+  <div class="sheet">
+    <h2>Catálogo de productos</h2>
+    <div class="products-scroll" id="productsMgmtList"></div>
+    <div class="add-product-form">
+      <input id="newProductName" type="text" placeholder="Nombre del producto">
+      <input id="newProductPrice" class="price" type="number" inputmode="decimal" placeholder="Precio">
+      <button id="addProductBtn">Agregar</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="productsOverlay" style="flex:none;width:100%;">Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PRODUCT SHEET -->
+<div class="overlay" id="editProductOverlay">
+  <div class="sheet">
+    <h2>Editar producto</h2>
+    <div class="field">
+      <label>Nombre</label>
+      <input id="editProductName" type="text">
+    </div>
+    <div class="field">
+      <label>Precio</label>
+      <input id="editProductPrice" type="number" inputmode="decimal">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="editProductOverlay">Cancelar</button>
+      <button class="btn-save" id="saveEditProduct">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOSIT SHEET -->
+<div class="overlay" id="depositOverlay">
+  <div class="sheet">
+    <h2>Registrar depósito</h2>
+    <div class="field">
+      <label>Monto</label>
+      <input id="depositAmount" type="number" inputmode="decimal" placeholder="0">
+    </div>
+    <div class="field">
+      <label>¿Quién deja el dinero?</label>
+      <input id="depositNote" type="text" placeholder="Ej: Familia Torres">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="depositOverlay">Cancelar</button>
+      <button class="btn-save deposit" id="saveDeposit">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE SHEET -->
+<div class="overlay" id="purchaseOverlay">
+  <div class="sheet">
+    <h2>Registrar compra</h2>
+    <div class="cart-list" id="cartList"></div>
+    <div class="field" style="margin-top:6px;">
+      <label>Otro producto (fuera del catálogo)</label>
+      <div style="display:flex;gap:8px;">
+        <input id="customItemName" type="text" placeholder="Nombre" style="flex:1;">
+        <input id="customItemPrice" type="number" inputmode="decimal" placeholder="Precio" style="max-width:90px;">
+      </div>
+    </div>
+    <div class="cart-total-row">
+      <span>Total</span>
+      <span id="cartTotal">$0</span>
+    </div>
+    <div class="warn" id="purchaseWarn" style="display:none;">El saldo quedará en negativo.</div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="purchaseOverlay">Cancelar</button>
+      <button class="btn-save purchase" id="savePurchase">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TX SHEET -->
+<div class="overlay" id="editTxOverlay">
+  <div class="sheet">
+    <h2 id="editTxTitle">Editar movimiento</h2>
+    <div class="field">
+      <label>Monto</label>
+      <input id="editTxAmount" type="number" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label id="editTxNoteLabel">Detalle</label>
+      <input id="editTxNote" type="text">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="editTxOverlay">Cancelar</button>
+      <button class="btn-save" id="saveEditTx">Guardar cambios</button>
+    </div>
+    <button class="btn-delete" id="deleteTx">Eliminar movimiento</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  doc,
+  onSnapshot,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+// ============================================================
+// 1) PEGA AQUÍ la configuración de tu proyecto Firebase.
+//    La encuentras en: Firebase console → ⚙️ Configuración del
+//    proyecto → "Tus apps" → app web → SDK setup and configuration.
+// ============================================================
+const firebaseConfig = {
+  apiKey: "PEGA_AQUI_TU_API_KEY",
+  authDomain: "PEGA_AQUI.firebaseapp.com",
+  projectId: "PEGA_AQUI",
+  storageBucket: "PEGA_AQUI.appspot.com",
+  messagingSenderId: "PEGA_AQUI",
+  appId: "PEGA_AQUI"
+};
+
+// ============================================================
+// 2) CAMBIA este PIN por el que quieras usar en tu local.
+//    Todos los encargados usarán el mismo PIN para entrar.
+// ============================================================
+const ACCESS_PIN = "1234";
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = initializeFirestore(firebaseApp, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
+const storeDocRef = doc(db, "tienda", "store");
+// ============================================================
+
+let data = { residents: {}, products: {} };
+let currentResidentId = null;
+let currentEditTxId = null;
+let currentEditProductId = null;
+let cart = {};
+let showArchived = false;
+
+let toastTimer = null;
+function toast(message){
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+let confirmResolve = null;
+function customConfirm(message, okLabel){
+  return new Promise(resolve=>{
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmOkBtn').textContent = okLabel || 'Eliminar';
+    confirmResolve = resolve;
+    openOverlay('confirmOverlay');
+  });
+}
+document.getElementById('confirmCancelBtn').addEventListener('click', ()=>{
+  closeOverlay('confirmOverlay');
+  if(confirmResolve){ confirmResolve(false); confirmResolve = null; }
+});
+document.getElementById('confirmOkBtn').addEventListener('click', ()=>{
+  closeOverlay('confirmOverlay');
+  if(confirmResolve){ confirmResolve(true); confirmResolve = null; }
+});
+
+function money(n){
+  const v = Math.round(n);
+  return (v<0?'-$':'$') + Math.abs(v).toLocaleString('es-CL');
+}
+function uid(){
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+}
+function todayLabel(){
+  const d = new Date();
+  return d.toLocaleDateString('es-CL', {day:'numeric', month:'short'});
+}
+function dateLabel(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', {day:'numeric', month:'short'}) + ' · ' +
+         d.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+}
+
+let currentSyncStatus = null;
+
+function showLoadState(text, showRetry){
+  document.getElementById('loadState').style.display = 'flex';
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('loadStateText').textContent = text;
+  document.getElementById('retryLoadBtn').style.display = showRetry ? 'inline-block' : 'none';
+}
+function hideLoadState(){
+  document.getElementById('loadState').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+}
+
+let unsubscribeSnapshot = null;
+let firstSnapshotReceived = false;
+
+function startListening(){
+  showLoadState('Cargando datos...', false);
+
+  // If nothing arrives at all (no local cache yet AND no network), stop
+  // waiting forever and show a retry screen instead.
+  const safetyTimeout = setTimeout(()=>{
+    if(!firstSnapshotReceived){
+      showLoadState('No se pudo conectar la primera vez. Revisa tu wifi o datos móviles e intenta de nuevo.', true);
+    }
+  }, 9000);
+
+  if(unsubscribeSnapshot) unsubscribeSnapshot();
+  unsubscribeSnapshot = onSnapshot(storeDocRef, { includeMetadataChanges: true }, (snap)=>{
+    clearTimeout(safetyTimeout);
+    firstSnapshotReceived = true;
+
+    const incoming = snap.exists() ? snap.data() : {};
+    data = {
+      residents: incoming.residents || {},
+      products: incoming.products || {},
+      nextNumber: incoming.nextNumber || 1
+    };
+    let migrated = false;
+    Object.keys(data.residents).forEach(id=>{
+      if(!data.residents[id].number){
+        data.residents[id].number = data.nextNumber;
+        data.nextNumber += 1;
+        migrated = true;
+      }
+    });
+
+    setSyncStatus(snap.metadata.hasPendingWrites ? 'pending' : 'synced');
+    hideLoadState();
+    refreshCurrentView();
+    if(migrated) saveData();
+  }, ()=>{
+    clearTimeout(safetyTimeout);
+    if(!firstSnapshotReceived){
+      showLoadState('No se pudo conectar la primera vez. Revisa tu wifi o datos móviles e intenta de nuevo.', true);
+    }
+  });
+}
+document.getElementById('retryLoadBtn').addEventListener('click', startListening);
+
+function saveData(){
+  // Fire-and-forget: Firestore's offline cache queues this write on the
+  // device (even if the app is fully closed and reopened later) and sends
+  // it automatically once there's a connection again. The onSnapshot
+  // listener above already reflects the change instantly from the local
+  // cache, so nothing needs to wait for this to finish.
+  setDoc(storeDocRef, data).catch(()=>{ /* SDK retries this on its own */ });
+}
+
+function refreshCurrentView(){
+  renderList();
+  if(currentResidentId) renderDetail();
+}
+
+function setSyncStatus(status){
+  currentSyncStatus = status;
+  const el = document.getElementById('syncPill');
+  const offline = !navigator.onLine;
+  if(el){
+    if(status === 'synced' && !offline){ el.textContent = '🟢 Sincronizado'; el.style.color = 'var(--sage)'; }
+    else if(offline){ el.textContent = '🔴 Sin conexión — se guardará solo'; el.style.color = 'var(--brick)'; }
+    else { el.textContent = '🟠 Guardando...'; el.style.color = 'var(--gold)'; }
+  }
+}
+window.addEventListener('offline', ()=> setSyncStatus('pending'));
+window.addEventListener('online', ()=> setSyncStatus('pending'));
+
+// ---- PIN gate ----
+const PIN_REMEMBER_KEY = 'tienda_pin_ok';
+function checkPinGate(){
+  if(localStorage.getItem(PIN_REMEMBER_KEY) === 'yes'){
+    startListening();
+  } else {
+    document.getElementById('pinGate').style.display = 'flex';
+    document.getElementById('pinInput').focus();
+  }
+}
+function submitPin(){
+  const val = document.getElementById('pinInput').value.trim();
+  if(val && val === ACCESS_PIN){
+    try{ localStorage.setItem(PIN_REMEMBER_KEY, 'yes'); }catch(e){}
+    document.getElementById('pinGate').style.display = 'none';
+    startListening();
+  } else {
+    document.getElementById('pinError').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+document.getElementById('pinSubmitBtn').addEventListener('click', submitPin);
+document.getElementById('pinInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') submitPin(); });
+
+
+function findDuplicateName(name, excludeId){
+  const norm = name.trim().toLowerCase();
+  return Object.keys(data.residents).find(id=>
+    id !== excludeId && data.residents[id].name.trim().toLowerCase() === norm
+  );
+}
+
+function residentBalance(r){
+  return r.transactions.reduce((sum,t)=> sum + t.amount, 0) + (r.opening||0);
+}
+
+function renderList(){
+  const list = document.getElementById('residentList');
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const ids = Object.keys(data.residents)
+    .filter(id => !!data.residents[id].archived === showArchived)
+    .filter(id => {
+      const r = data.residents[id];
+      return r.name.toLowerCase().includes(q) || String(r.number).includes(q);
+    })
+    .sort((a,b)=> data.residents[a].name.localeCompare(data.residents[b].name));
+
+  const activeCount = Object.values(data.residents).filter(r=> !r.archived).length;
+  const archivedCount = Object.values(data.residents).filter(r=> r.archived).length;
+  document.getElementById('residentCount').textContent =
+    showArchived ? archivedCount + ' residentes archivados' : activeCount + ' residentes registrados';
+  document.getElementById('toggleArchivedBtn').textContent =
+    showArchived ? '← Volver a activos' : `Ver archivados (${archivedCount})`;
+
+  if(ids.length === 0){
+    list.innerHTML = '<div class="empty-state">' +
+      (q ? 'No hay residentes que coincidan con la búsqueda.' :
+        showArchived ? 'No hay residentes archivados.' : 'Todavía no hay residentes. Toca "+ Nuevo" para agregar el primero.') +
+      '</div>';
+    return;
+  }
+
+  list.innerHTML = ids.map(id=>{
+    const r = data.residents[id];
+    const bal = residentBalance(r);
+    const balClass = bal < 0 ? 'neg' : (bal === 0 ? 'zero' : '');
+    return `<div class="row" data-id="${id}">
+      <div class="name"><span class="num">#${r.number}</span>${escapeHtml(r.name)}</div>
+      <div class="balance ${balClass}">${bal<=0?'⚠️ ':''}${money(bal)}</div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.row').forEach(row=>{
+    row.addEventListener('click', ()=> openDetail(row.dataset.id));
+  });
+}
+document.getElementById('toggleArchivedBtn').addEventListener('click', ()=>{
+  showArchived = !showArchived;
+  document.getElementById('searchInput').value = '';
+  renderList();
+});
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function openDetail(id){
+  currentResidentId = id;
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detail').style.display = 'flex';
+  renderDetail();
+}
+function closeDetail(){
+  currentResidentId = null;
+  document.getElementById('detail').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+  renderList();
+}
+
+function renderDetail(){
+  const r = data.residents[currentResidentId];
+  if(!r) return closeDetail();
+  document.getElementById('detailName').innerHTML =
+    `<span class="detail-num">#${r.number}</span> · ` + escapeHtml(r.name) +
+    (r.archived ? '<span class="archived-tag">Archivado</span>' : '');
+  const bal = residentBalance(r);
+  document.getElementById('detailBalance').textContent = money(bal);
+  document.getElementById('detailBalance').style.color = bal < 0 ? 'var(--brick)' : (bal === 0 ? 'var(--gold)' : 'var(--ink)');
+
+  document.getElementById('archiveBtn').textContent = r.archived ? 'Reactivar' : 'Archivar';
+  document.getElementById('deleteResidentBtn').style.display = r.archived ? 'inline' : 'none';
+  document.querySelector('.action-row').style.display = r.archived ? 'none' : 'flex';
+
+  const txList = document.getElementById('txList');
+  const sorted = [...r.transactions].sort((a,b)=> new Date(b.date) - new Date(a.date));
+  if(sorted.length === 0){
+    txList.innerHTML = '<div class="empty-state">Sin movimientos todavía.</div>';
+    return;
+  }
+  txList.innerHTML = sorted.map(t=>{
+    const isDeposit = t.amount > 0;
+    return `<div class="tx-item" data-id="${t.id}">
+      <div class="tx-left">
+        <div class="tx-note">${isDeposit ? 'Depósito' : 'Compra'} ${t.note ? '· ' + escapeHtml(t.note) : ''}</div>
+        <div class="tx-date">${dateLabel(t.date)}</div>
+      </div>
+      <div class="tx-amount ${isDeposit?'pos':'neg'}">${isDeposit?'+':''}${money(t.amount)}</div>
+    </div>`;
+  }).join('');
+
+  txList.querySelectorAll('.tx-item').forEach(item=>{
+    item.addEventListener('click', ()=> openEditTx(item.dataset.id));
+  });
+}
+
+function openOverlay(id){ document.getElementById(id).classList.add('open'); }
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('[data-close]').forEach(btn=>{
+  btn.addEventListener('click', ()=> closeOverlay(btn.dataset.close));
+});
+
+// ---- New resident ----
+document.getElementById('newResidentBtn').addEventListener('click', ()=>{
+  document.getElementById('newResidentName').value = '';
+  document.getElementById('newResidentBalance').value = '';
+  openOverlay('newResidentOverlay');
+});
+document.getElementById('saveNewResident').addEventListener('click', async ()=>{
+  const name = document.getElementById('newResidentName').value.trim();
+  const opening = parseFloat(document.getElementById('newResidentBalance').value) || 0;
+  if(!name){ toast('Escribe el nombre del residente.'); return; }
+  const dupId = findDuplicateName(name, null);
+  if(dupId){
+    const dup = data.residents[dupId];
+    const proceed = await customConfirm(
+      `Ya existe ${dup.archived ? 'un residente archivado' : 'un residente'} llamado "${dup.name}" (#${dup.number}). ¿Quieres crear otro de todas formas?`,
+      'Crear de todas formas'
+    );
+    if(!proceed) return;
+  }
+  const id = uid();
+  data.residents[id] = { name, opening, transactions: [], number: data.nextNumber };
+  data.nextNumber += 1;
+  await saveData();
+  closeOverlay('newResidentOverlay');
+  renderList();
+});
+
+// ---- Products catalog ----
+document.getElementById('openProductsBtn').addEventListener('click', ()=>{
+  document.getElementById('newProductName').value = '';
+  document.getElementById('newProductPrice').value = '';
+  renderProductsMgmt();
+  openOverlay('productsOverlay');
+});
+
+function renderProductsMgmt(){
+  const wrap = document.getElementById('productsMgmtList');
+  const ids = Object.keys(data.products).sort((a,b)=> data.products[a].name.localeCompare(data.products[b].name));
+  if(ids.length === 0){
+    wrap.innerHTML = '<div class="no-products">Todavía no hay productos. Agrega el primero abajo.</div>';
+    return;
+  }
+  wrap.innerHTML = ids.map(id=>{
+    const p = data.products[id];
+    return `<div class="product-row">
+      <div>
+        <div class="p-name">${escapeHtml(p.name)}</div>
+        <div class="p-price">${money(p.price)}</div>
+      </div>
+      <div class="p-actions">
+        <button class="edit" data-id="${id}">Editar</button>
+        <button class="del" data-id="${id}">Eliminar</button>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.edit').forEach(b=> b.addEventListener('click', ()=> openEditProduct(b.dataset.id)));
+  wrap.querySelectorAll('.del').forEach(b=> b.addEventListener('click', ()=> deleteProduct(b.dataset.id)));
+}
+
+document.getElementById('addProductBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('newProductName').value.trim();
+  const price = parseFloat(document.getElementById('newProductPrice').value);
+  if(!name){ toast('Escribe el nombre del producto.'); return; }
+  if(!price || price <= 0){ toast('Ingresa un precio válido.'); return; }
+  data.products[uid()] = { name, price };
+  await saveData();
+  document.getElementById('newProductName').value = '';
+  document.getElementById('newProductPrice').value = '';
+  renderProductsMgmt();
+});
+
+function openEditProduct(id){
+  currentEditProductId = id;
+  const p = data.products[id];
+  document.getElementById('editProductName').value = p.name;
+  document.getElementById('editProductPrice').value = p.price;
+  openOverlay('editProductOverlay');
+}
+document.getElementById('saveEditProduct').addEventListener('click', async ()=>{
+  const p = data.products[currentEditProductId];
+  const name = document.getElementById('editProductName').value.trim();
+  const price = parseFloat(document.getElementById('editProductPrice').value);
+  if(!name){ toast('Escribe el nombre del producto.'); return; }
+  if(!price || price <= 0){ toast('Ingresa un precio válido.'); return; }
+  p.name = name; p.price = price;
+  await saveData();
+  closeOverlay('editProductOverlay');
+  renderProductsMgmt();
+});
+async function deleteProduct(id){
+  if(!(await customConfirm('¿Eliminar este producto del catálogo?'))) return;
+  delete data.products[id];
+  await saveData();
+  renderProductsMgmt();
+}
+
+// ---- Deposit ----
+document.getElementById('depositBtn').addEventListener('click', ()=>{
+  document.getElementById('depositAmount').value = '';
+  document.getElementById('depositNote').value = '';
+  openOverlay('depositOverlay');
+});
+document.getElementById('saveDeposit').addEventListener('click', async ()=>{
+  const amount = parseFloat(document.getElementById('depositAmount').value);
+  const note = document.getElementById('depositNote').value.trim();
+  if(!amount || amount <= 0){ toast('Ingresa un monto válido.'); return; }
+  const r = data.residents[currentResidentId];
+  r.transactions.push({ id: uid(), amount: amount, note, date: new Date().toISOString() });
+  await saveData();
+  closeOverlay('depositOverlay');
+  renderDetail();
+});
+
+// ---- Purchase (cart) ----
+document.getElementById('purchaseBtn').addEventListener('click', ()=>{
+  cart = {};
+  document.getElementById('customItemName').value = '';
+  document.getElementById('customItemPrice').value = '';
+  renderCart();
+  openOverlay('purchaseOverlay');
+});
+
+function cartTotal(){
+  let total = 0;
+  Object.keys(cart).forEach(id=>{
+    const p = data.products[id];
+    if(p) total += p.price * cart[id];
+  });
+  const customPrice = parseFloat(document.getElementById('customItemPrice').value) || 0;
+  if(customPrice > 0) total += customPrice;
+  return total;
+}
+
+function renderCart(){
+  const wrap = document.getElementById('cartList');
+  const ids = Object.keys(data.products).sort((a,b)=> data.products[a].name.localeCompare(data.products[b].name));
+  if(ids.length === 0){
+    wrap.innerHTML = '<div class="no-products">No hay productos en el catálogo todavía. Usa el campo "Otro producto" abajo, o agrega productos desde "🏷️ Productos del catálogo".</div>';
+  } else {
+    wrap.innerHTML = ids.map(id=>{
+      const p = data.products[id];
+      const qty = cart[id] || 0;
+      return `<div class="cart-row" data-id="${id}">
+        <div class="c-info">
+          <div class="c-name">${escapeHtml(p.name)}</div>
+          <div class="c-price">${money(p.price)}</div>
+        </div>
+        <div class="qty-stepper">
+          <button class="minus">−</button>
+          <span class="qty-num">${qty}</span>
+          <button class="plus ${qty>0?'active':''}">+</button>
+        </div>
+      </div>`;
+    }).join('');
+    wrap.querySelectorAll('.cart-row').forEach(row=>{
+      const id = row.dataset.id;
+      row.querySelector('.plus').addEventListener('click', ()=>{
+        cart[id] = (cart[id]||0) + 1;
+        renderCart();
+      });
+      row.querySelector('.minus').addEventListener('click', ()=>{
+        if(!cart[id]) return;
+        cart[id] -= 1;
+        if(cart[id] <= 0) delete cart[id];
+        renderCart();
+      });
+    });
+  }
+  updateCartTotalDisplay();
+}
+
+function updateCartTotalDisplay(){
+  const total = cartTotal();
+  document.getElementById('cartTotal').textContent = money(total);
+  const r = data.residents[currentResidentId];
+  const bal = r ? residentBalance(r) : 0;
+  document.getElementById('purchaseWarn').style.display = (total > bal) ? 'block' : 'none';
+}
+document.getElementById('customItemPrice').addEventListener('input', updateCartTotalDisplay);
+
+document.getElementById('savePurchase').addEventListener('click', async ()=>{
+  const items = [];
+  Object.keys(cart).forEach(id=>{
+    const p = data.products[id];
+    if(p && cart[id] > 0) items.push(`${cart[id]}x ${p.name}`);
+  });
+  const customName = document.getElementById('customItemName').value.trim();
+  const customPrice = parseFloat(document.getElementById('customItemPrice').value) || 0;
+  if(customName && customPrice > 0) items.push(customName);
+
+  const total = cartTotal();
+  if(items.length === 0 || total <= 0){ toast('Agrega al menos un producto o completa "Otro producto".'); return; }
+
+  const r = data.residents[currentResidentId];
+  r.transactions.push({ id: uid(), amount: -total, note: items.join(', '), date: new Date().toISOString() });
+  await saveData();
+  closeOverlay('purchaseOverlay');
+  renderDetail();
+});
+
+// ---- Edit / delete transaction ----
+function openEditTx(txId){
+  currentEditTxId = txId;
+  const r = data.residents[currentResidentId];
+  const t = r.transactions.find(x=> x.id === txId);
+  if(!t) return;
+  const isDeposit = t.amount > 0;
+  document.getElementById('editTxTitle').textContent = isDeposit ? 'Editar depósito' : 'Editar compra';
+  document.getElementById('editTxNoteLabel').textContent = isDeposit ? '¿Quién deja el dinero?' : 'Producto';
+  document.getElementById('editTxAmount').value = Math.abs(t.amount);
+  document.getElementById('editTxNote').value = t.note || '';
+  openOverlay('editTxOverlay');
+}
+document.getElementById('saveEditTx').addEventListener('click', async ()=>{
+  const r = data.residents[currentResidentId];
+  const t = r.transactions.find(x=> x.id === currentEditTxId);
+  if(!t) return;
+  const amount = parseFloat(document.getElementById('editTxAmount').value);
+  const note = document.getElementById('editTxNote').value.trim();
+  if(!amount || amount <= 0){ toast('Ingresa un monto válido.'); return; }
+  const sign = t.amount > 0 ? 1 : -1;
+  t.amount = amount * sign;
+  t.note = note;
+  await saveData();
+  closeOverlay('editTxOverlay');
+  renderDetail();
+});
+document.getElementById('deleteTx').addEventListener('click', async ()=>{
+  if(!(await customConfirm('¿Eliminar este movimiento?'))) return;
+  const r = data.residents[currentResidentId];
+  r.transactions = r.transactions.filter(x=> x.id !== currentEditTxId);
+  await saveData();
+  closeOverlay('editTxOverlay');
+  renderDetail();
+});
+
+// ---- Daily summary ----
+document.getElementById('openSummaryBtn').addEventListener('click', ()=>{
+  renderSummary();
+  openOverlay('summaryOverlay');
+});
+
+function renderSummary(){
+  const today = new Date().toDateString();
+  let deposits = 0, purchases = 0;
+  const items = [];
+
+  Object.values(data.residents).forEach(r=>{
+    r.transactions.forEach(t=>{
+      if(new Date(t.date).toDateString() === today){
+        if(t.amount > 0) deposits += t.amount; else purchases += -t.amount;
+        items.push({...t, residentName: r.name, residentNumber: r.number});
+      }
+    });
+  });
+  items.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  document.getElementById('summaryTitle').textContent = 'Resumen de hoy · ' + todayLabel();
+  document.getElementById('statDeposits').textContent = money(deposits);
+  document.getElementById('statPurchases').textContent = money(purchases);
+  document.getElementById('statCount').textContent = items.length;
+
+  const list = document.getElementById('summaryList');
+  if(items.length === 0){
+    list.innerHTML = '<div class="no-products">Todavía no hay movimientos registrados hoy.</div>';
+    return;
+  }
+  list.innerHTML = items.map(t=>{
+    const isDeposit = t.amount > 0;
+    return `<div class="summary-item">
+      <div>
+        <div class="s-note">#${t.residentNumber} ${escapeHtml(t.residentName)}</div>
+        <div class="s-sub">${isDeposit ? 'Depósito' : 'Compra'}${t.note ? ' · ' + escapeHtml(t.note) : ''} · ${dateLabel(t.date).split(' · ')[1]}</div>
+      </div>
+      <div class="tx-amount ${isDeposit?'pos':'neg'}">${isDeposit?'+':''}${money(t.amount)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- Full history (search + date filter) ----
+document.getElementById('openHistoryBtn').addEventListener('click', ()=>{
+  document.getElementById('historySearch').value = '';
+  document.getElementById('historyFrom').value = '';
+  document.getElementById('historyTo').value = '';
+  renderHistory();
+  openOverlay('historyOverlay');
+});
+['historySearch','historyFrom','historyTo'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderHistory);
+});
+
+function renderHistory(){
+  const q = document.getElementById('historySearch').value.trim().toLowerCase();
+  const fromVal = document.getElementById('historyFrom').value;
+  const toVal = document.getElementById('historyTo').value;
+  const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+  const to = toVal ? new Date(toVal + 'T23:59:59') : null;
+
+  let deposits = 0, purchases = 0;
+  const items = [];
+  Object.values(data.residents).forEach(r=>{
+    if(q && !r.name.toLowerCase().includes(q) && !String(r.number).includes(q)) return;
+    r.transactions.forEach(t=>{
+      const d = new Date(t.date);
+      if(from && d < from) return;
+      if(to && d > to) return;
+      if(t.amount > 0) deposits += t.amount; else purchases += -t.amount;
+      items.push({...t, residentName: r.name, residentNumber: r.number});
+    });
+  });
+  items.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  document.getElementById('histStatDeposits').textContent = money(deposits);
+  document.getElementById('histStatPurchases').textContent = money(purchases);
+  document.getElementById('histStatCount').textContent = items.length;
+
+  const list = document.getElementById('historyList');
+  if(items.length === 0){
+    list.innerHTML = '<div class="no-products">No hay movimientos con esos filtros.</div>';
+    return;
+  }
+  list.innerHTML = items.map(t=>{
+    const isDeposit = t.amount > 0;
+    return `<div class="summary-item">
+      <div>
+        <div class="s-note">#${t.residentNumber} ${escapeHtml(t.residentName)}</div>
+        <div class="s-sub">${isDeposit ? 'Depósito' : 'Compra'}${t.note ? ' · ' + escapeHtml(t.note) : ''} · ${dateLabel(t.date)}</div>
+      </div>
+      <div class="tx-amount ${isDeposit?'pos':'neg'}">${isDeposit?'+':''}${money(t.amount)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- Export CSV ----
+function csvEscape(v){
+  const s = String(v === undefined || v === null ? '' : v);
+  if(s.includes(',') || s.includes('"') || s.includes('\n')){
+    return '"' + s.replace(/"/g,'""') + '"';
+  }
+  return s;
+}
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = [['Número','Nombre','Archivado','Fecha y hora','Tipo','Detalle','Monto']];
+  Object.values(data.residents)
+    .sort((a,b)=> a.number - b.number)
+    .forEach(r=>{
+      const sorted = [...r.transactions].sort((a,b)=> new Date(a.date) - new Date(b.date));
+      sorted.forEach(t=>{
+        rows.push([
+          r.number,
+          r.name,
+          r.archived ? 'Sí' : 'No',
+          new Date(t.date).toLocaleString('es-CL'),
+          t.amount > 0 ? 'Depósito' : 'Compra',
+          t.note || '',
+          t.amount
+        ]);
+      });
+    });
+  const csv = rows.map(row => row.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tienda-historial-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ---- Nav ----
+document.getElementById('backBtn').addEventListener('click', closeDetail);
+document.getElementById('searchInput').addEventListener('input', renderList);
+
+document.getElementById('editNameBtn').addEventListener('click', ()=>{
+  const r = data.residents[currentResidentId];
+  document.getElementById('editNameInput').value = r.name;
+  openOverlay('editNameOverlay');
+});
+document.getElementById('saveEditName').addEventListener('click', async ()=>{
+  const name = document.getElementById('editNameInput').value.trim();
+  if(!name){ toast('Escribe el nombre del residente.'); return; }
+  const dupId = findDuplicateName(name, currentResidentId);
+  if(dupId){
+    const dup = data.residents[dupId];
+    const proceed = await customConfirm(
+      `Ya existe ${dup.archived ? 'un residente archivado' : 'un residente'} llamado "${dup.name}" (#${dup.number}). ¿Quieres guardar igual?`,
+      'Guardar de todas formas'
+    );
+    if(!proceed) return;
+  }
+  data.residents[currentResidentId].name = name;
+  await saveData();
+  closeOverlay('editNameOverlay');
+  renderDetail();
+});
+
+document.getElementById('archiveBtn').addEventListener('click', async ()=>{
+  const r = data.residents[currentResidentId];
+  r.archived = !r.archived;
+  await saveData();
+  renderDetail();
+});
+document.getElementById('deleteResidentBtn').addEventListener('click', async ()=>{
+  const r = data.residents[currentResidentId];
+  const bal = residentBalance(r);
+  const warnMsg = bal !== 0
+    ? `Este residente tiene un saldo de ${money(bal)} y ${r.transactions.length} movimiento(s) en su historial. `
+    : `Se perderá su historial de ${r.transactions.length} movimiento(s). `;
+  if(!(await customConfirm(`¿Eliminar a "${r.name}" definitivamente? ${warnMsg}Esta acción no se puede deshacer.`))) return;
+  delete data.residents[currentResidentId];
+  await saveData();
+  closeDetail();
+});
+
+checkPinGate();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
